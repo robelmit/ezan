@@ -10,6 +10,7 @@ import { lookUp } from "geojson-places";
 import sharp from 'sharp'
 import moment from 'moment'
 import Util from "../Models/Util.js";
+
 const Adsrouter = express.Router();
 var storage = multer.diskStorage({
   destination: 'images',
@@ -48,6 +49,7 @@ Adsrouter.post(
     const { catagory, status, detailcatagory, maincatagory, region, city, fuel, EngineSize, transmission, color, year, model } = req.body
     const { distance, minprice, maxprice, filter } = req.body
     const { tags, longitude, latitude } = req.body
+    console.log('req.body')
     console.log(req.body)
     var morequery = {}
     var range = {}

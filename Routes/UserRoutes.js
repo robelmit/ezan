@@ -9,6 +9,16 @@ import Room from "./../Models/Rooms.js";
 import Message from "./../Models/Message.js";
 import nearbyCities from "nearby-cities"
 import bcrypt from 'bcryptjs'
+import multer from 'multer'
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'images');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+var upload = multer({ storage: storage });
 
 
 const userRouter = express.Router();
@@ -126,9 +136,18 @@ userRouter.delete(
   protect,
   admin,
   asyncHandler(async (req, res) => {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const id = req.params.id;
+    const user = await User.findByIdAndDelete(id);
+    const adds = await Add.deleteMany({ postedBy: id })
+    const rooms = await Room.deleteMany({
+      $or: [{ userfrom: id }, { userto: id }]
+    })
+    const message = await Message.deleteMany({
+      $or: [{ userfrom: id }, { userto: id }]
+    })
 
-    if (user) {
+
+    if (user && adds && rooms) {
       res.json({
         message: "User Successfully deleted"
       });
@@ -285,7 +304,7 @@ userRouter.get('/favourites',
 userRouter.post('/setting',
   protect,
   async (req, res) => {
-    const { payment, isenabled,url,paymentforbig } = req.body
+    const { payment, isenabled, url, paymentforbig } = req.body
     console.log(req.body);
     const util = await Util.findOne()
     if (payment) {
@@ -315,7 +334,7 @@ userRouter.post('/sendpayment',
         console.log('up')
         add.islive = true
         add.save().then(addfinal => {
-         
+
           res.json(addfinal)
 
         }).catch(err => {
@@ -465,4 +484,20 @@ userRouter.delete("/user", protect, async (req, res) => {
   if (user) res.json({ message: "User deleted successfully" })
   else res.status(401)
 })
+userRouter.put('/user/upload', protect, upload.single('image'), async (req, res) => {
+  console.log('uploading profile');
+  // var baseURL = "http:/localhost:5000";
+
+  var url = "https://www.ezana.site/" + req.file.filename;
+  // var url = baseURL + '/' + req.file.filename;
+  const user = await User.findOne({ _id: req.user._id })
+  if (user) {
+    console.log('a')
+    user.profile = url
+  }
+  await user.save()
+
+
+  res.json({ message: url });
+});
 export default userRouter;
